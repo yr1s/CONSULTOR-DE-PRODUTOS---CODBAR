@@ -664,7 +664,7 @@
     }
 
     // ===== Modal de código de barras =====
-    function abrirBarcode(codigos, descricao) {
+    async function abrirBarcode(codigos, descricao) {
         document.getElementById('barcodeDesc').textContent = descricao;
 
         const sel = document.getElementById('barcodeSelect');
