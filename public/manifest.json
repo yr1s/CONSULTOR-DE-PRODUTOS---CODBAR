@@ -1,0 +1,22 @@
+{
+  "name": "Consulta de Preço — Perez",
+  "short_name": "Perez Preços",
+  "description": "Consulta de preço e estoque — Perez Materiais Elétricos",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1565C0",
+  "theme_color": "#1565C0",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "https://i.ibb.co/7Y59zkY/Logo-perez-principal-com-imagens-1-removebg-preview.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://i.ibb.co/7Y59zkY/Logo-perez-principal-com-imagens-1-removebg-preview.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

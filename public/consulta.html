@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+    <title>Consulta de Preço — Perez</title>
+
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#1565C0">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Perez Preços">
+    <link rel="apple-touch-icon" href="https://i.ibb.co/7Y59zkY/Logo-perez-principal-com-imagens-1-removebg-preview.png">
+
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+    <style>
+        /* ===== Reset + base ===== */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --azul:   #1565C0;
+            --azul-h: #0D47A1;
+            --verde:  #2E7D32;
+            --cinza:  #F5F5F5;
+            --borda:  #DCDCDC;
+            --texto:  #212121;
+            --sub:    #616161;
+            --branco: #FFFFFF;
+            --sombra: 0 2px 8px rgba(0,0,0,.12);
+        }
+
+        html, body {
+            height: 100%;
+            font-family: Arial, sans-serif;
+            background: var(--cinza);
+            color: var(--texto);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* ===== Cabeçalho fixo ===== */
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: var(--azul);
+            color: var(--branco);
+            padding: 10px 14px 12px;
+            box-shadow: var(--sombra);
+        }
+
+        .header-top {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .header-top img {
+            width: 44px;
+            height: 44px;
+            border-radius: 6px;
+            background: var(--branco);
+            flex-shrink: 0;
+        }
+
+        .header-top h1 {
+            font-size: 15px;
+            font-weight: bold;
+            line-height: 1.25;
+        }
+
+        .header-top h2 {
+            font-size: 12px;
+            font-weight: normal;
+            opacity: .85;
+        }
+
+        /* ===== Barra de busca ===== */
+        .search-bar {
+            display: flex;
+            gap: 8px;
+        }
+
+        #pesqTermo {
+            flex: 1;
+            min-width: 0;
+            height: 46px;
+            padding: 0 14px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            outline: none;
+            background: var(--branco);
+            color: var(--texto);
+        }
+
+        #pesqTermo::placeholder { color: #9E9E9E; }
+
+        #btnBuscar {
+            height: 46px;
+            padding: 0 18px;
+            background: var(--verde);
+            color: var(--branco);
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            white-space: nowrap;
+            flex-shrink: 0;
+            transition: background .15s;
+        }
+
+        #btnBuscar:active { background: #1B5E20; }
+
+        /* ===== Área de resultados ===== */
+        #resultados {
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        /* ===== Estado vazio / erro / carregando ===== */
+        .estado {
+            background: var(--branco);
+            border: 1px solid var(--borda);
+            border-radius: 10px;
+            padding: 28px 20px;
+            text-align: center;
+            color: var(--sub);
+            font-size: 15px;
+            line-height: 1.5;
+        }
+
+        .estado .icone {
+            font-size: 36px;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .spinner {
+            width: 36px;
+            height: 36px;
+            border: 4px solid var(--borda);
+            border-top-color: var(--azul);
+            border-radius: 50%;
+            animation: spin .7s linear infinite;
+            margin: 0 auto 12px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ===== Cabeçalho de grupo de produto ===== */
+        .produto-grupo {
+            background: var(--branco);
+            border: 1px solid var(--borda);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: var(--sombra);
+        }
+
+        .produto-header {
+            padding: 12px 14px 10px;
+            border-bottom: 1px solid var(--borda);
+        }
+
+        .produto-codigo {
+            font-size: 11px;
+            font-weight: bold;
+            color: var(--sub);
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            margin-bottom: 3px;
+        }
+
+        .produto-desc {
+            font-size: 15px;
+            font-weight: bold;
+            color: var(--texto);
+            line-height: 1.3;
+        }
+
+        .produto-preco {
+            display: inline-block;
+            margin-top: 6px;
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--verde);
+        }
+
+        .produto-barras {
+            margin-top: 5px;
+            font-size: 11px;
+            color: var(--sub);
+            word-break: break-all;
+        }
+
+        .produto-barras span {
+            display: inline-block;
+            background: var(--cinza);
+            border-radius: 4px;
+            padding: 2px 6px;
+            margin: 2px 2px 0 0;
+            letter-spacing: .5px;
+            font-family: monospace;
+        }
+
+        /* ===== Linhas de localização ===== */
+        .local-lista {
+            padding: 0 14px 10px;
+        }
+
+        .local-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--cinza);
+        }
+
+        .local-row:last-child { border-bottom: none; }
+
+        .local-nome {
+            font-size: 13px;
+            font-weight: bold;
+            color: var(--azul);
+            min-width: 80px;
+            flex-shrink: 0;
+        }
+
+        .local-stats {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        .stat-pill {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: var(--cinza);
+            border-radius: 8px;
+            padding: 4px 10px;
+            min-width: 56px;
+        }
+
+        .stat-pill .stat-val {
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--texto);
+            line-height: 1.1;
+        }
+
+        .stat-pill .stat-lbl {
+            font-size: 10px;
+            color: var(--sub);
+            text-transform: uppercase;
+            letter-spacing: .3px;
+        }
+
+        .stat-pill.reservado .stat-val { color: #C62828; }
+
+        /* ===== Badge de sem estoque ===== */
+        .sem-estoque {
+            font-size: 12px;
+            color: #9E9E9E;
+            font-style: italic;
+        }
+
+        /* ===== Botão de código de barras ===== */
+        .btn-barcode {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            margin-top: 8px;
+            padding: 5px 12px;
+            background: var(--azul);
+            color: var(--branco);
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            letter-spacing: .3px;
+        }
+        .btn-barcode:active { background: var(--azul-h); }
+
+        /* ===== Modal de código de barras ===== */
+        #barcodeOverlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.55);
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        #barcodeOverlay.open { display: flex; }
+
+        #barcodeBox {
+            background: var(--branco);
+            border-radius: 12px;
+            padding: 24px 20px 20px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 4px 24px rgba(0,0,0,.25);
+        }
+
+        #barcodeBox h3 {
+            font-size: 13px;
+            color: var(--sub);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+        }
+
+        #barcodeBox p {
+            font-size: 15px;
+            font-weight: bold;
+            color: var(--texto);
+            margin-bottom: 16px;
+        }
+
+        #barcodeBox svg {
+            max-width: 100%;
+            height: auto;
+        }
+
+        /* seletor quando produto tem vários códigos */
+        #barcodeSelect {
+            width: 100%;
+            padding: 8px 10px;
+            font-size: 14px;
+            font-weight: bold;
+            border: 1px solid var(--borda);
+            border-radius: 6px;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        #btnFecharBarcode {
+            margin-top: 18px;
+            width: 100%;
+            padding: 12px;
+            background: var(--cinza);
+            border: 1px solid var(--borda);
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: bold;
+            color: var(--texto);
+            cursor: pointer;
+        }
+        #btnFecharBarcode:active { background: var(--borda); }
+
+        /* ===== Botão Ver mais ===== */
+        #btnVerMais {
+            display: none;
+            width: 100%;
+            padding: 14px;
+            background: var(--branco);
+            border: 2px dashed var(--borda);
+            border-radius: 10px;
+            color: var(--azul);
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            text-align: center;
+            transition: background .15s, border-color .15s;
+        }
+
+        #btnVerMais:active {
+            background: var(--cinza);
+            border-color: var(--azul);
+        }
+
+        /* ===== Rodapé de quantidade de resultados ===== */
+        #qtdResultados {
+            text-align: center;
+            font-size: 12px;
+            color: var(--sub);
+            padding-bottom: 20px;
+        }
+
+        /* ===== Responsividade desktop ===== */
+        @media (min-width: 600px) {
+            header { padding: 12px 24px 14px; }
+
+            .header-top h1 { font-size: 18px; }
+            .header-top h2 { font-size: 13px; }
+            .header-top img { width: 52px; height: 52px; }
+
+            #resultados { padding: 20px 24px; max-width: 800px; margin: 0 auto; }
+
+            #pesqTermo { font-size: 17px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ===== CABEÇALHO COM BUSCA ===== -->
+<header>
+    <div class="header-top">
+        <img src="https://i.ibb.co/7Y59zkY/Logo-perez-principal-com-imagens-1-removebg-preview.png" alt="Logo Perez">
+        <div>
+            <h1>Perez Materiais Elétricos</h1>
+            <h2>Consulta de Preço</h2>
+        </div>
+    </div>
+
+    <div class="search-bar">
+        <input
+            type="search"
+            id="pesqTermo"
+            placeholder="Nome, código GIX ou código de barras"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="off"
+            spellcheck="false"
+            inputmode="search"
+            enterkeyhint="search"
+        />
+        <button id="btnBuscar" onclick="buscar()">Buscar</button>
+    </div>
+</header>
+
+<!-- ===== RESULTADOS ===== -->
+<main id="resultados">
+    <div class="estado">
+        <span class="icone">🔍</span>
+        Digite o nome do produto, código GIX ou bipe o código de barras para consultar.
+    </div>
+</main>
+
+<!-- ===== MODAL CÓDIGO DE BARRAS ===== -->
+<div id="barcodeOverlay" onclick="fecharBarcode(event)">
+    <div id="barcodeBox">
+        <h3 id="barcodeLabel">Código de barras</h3>
+        <p id="barcodeDesc"></p>
+        <select id="barcodeSelect" onchange="renderBarcode(this.value)"></select>
+        <svg id="barcodeSvg"></svg>
+        <button id="btnFecharBarcode" onclick="fecharBarcode()">Fechar</button>
+    </div>
+</div>
+
+<button id="btnVerMais" onclick="verMais()"></button>
+<div id="qtdResultados"></div>
+
+<!-- ===== SCRIPT ===== -->
+<script>
+    /* ---- Config da API ----
+       Se aberto como arquivo (file://), aponta para localhost:3000.
+       Se servido pelo Flask, usa a mesma origem.
+       Altere baseUrl aqui se precisar de outro host/porta.
+    */
+    const API_CONFIG = {
+        baseUrl: location.protocol === 'file:' ? 'http://localhost:3000' : location.origin,
+        apiKey: ''
+    };
+
+    const PAGE_SIZE = 10;
+
+    // Estado da paginação
+    let todosGrupos = [];
+    let paginaAtual = 0;
+
+    function formatarMoeda(valor) {
+        return Number(valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    // Busca ao pressionar Enter no campo
+    document.getElementById('pesqTermo').addEventListener('keydown', ev => {
+        if (ev.key === 'Enter') { ev.preventDefault(); buscar(); }
+    });
+
+    // Foco automático ao carregar (desktop)
+    window.addEventListener('DOMContentLoaded', () => {
+        if (window.innerWidth >= 600) document.getElementById('pesqTermo').focus();
+    });
+
+    async function buscar() {
+        const termo = document.getElementById('pesqTermo').value.trim();
+        if (!termo) return;
+
+        const digitsOnly  = termo.replace(/\D/g, '');
+        const isAllDigits = /^\d+$/.test(termo);
+        const isLikelyEAN = isAllDigits && digitsOnly.length >= 12;
+
+        mostrarCarregando();
+
+        const base    = API_CONFIG.baseUrl.replace(/\/$/, '');
+        const url     = `${base}/api/busca?q=${encodeURIComponent(termo)}`;
+        const headers = {};
+        if (API_CONFIG.apiKey) headers['x-api-key'] = API_CONFIG.apiKey;
+
+        try {
+            const resp = await fetch(url, { headers });
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            const data = await resp.json();
+
+            if (!Array.isArray(data) || data.length === 0) { mostrarVazio(); return; }
+
+            // GIX exato quando termo numérico curto (não EAN)
+            let base_data = data;
+            if (isAllDigits && !isLikelyEAN) {
+                base_data = base_data.filter(r => String(r.produto || '').trim() === digitsOnly);
+            }
+
+            // Remove locais vazios, nulos e 'LOJA'
+            const LOCAIS_IGNORADOS = new Set(['', '-', '—', 'NULL', 'NULO', 'SEM LOCAL', 'LOJA']);
+            const filtrada = base_data.filter(r => {
+                const loc = (r.local || r.zona || '').toString().trim().toUpperCase();
+                return !LOCAIS_IGNORADOS.has(loc);
+            });
+
+            if (filtrada.length === 0) { mostrarVazio(); return; }
+
+            // Agrupa e armazena tudo — exibe apenas a primeira página
+            todosGrupos = agruparPorGix(filtrada);
+            paginaAtual = 0;
+            document.getElementById('resultados').replaceChildren();
+            exibirPagina();
+
+        } catch (err) {
+            mostrarErro(err.message);
+        }
+    }
+
+    // Renderiza o próximo bloco de PAGE_SIZE produtos
+    function exibirPagina() {
+        const inicio = paginaAtual * PAGE_SIZE;
+        const fatia  = todosGrupos.slice(inicio, inicio + PAGE_SIZE);
+        const area   = document.getElementById('resultados');
+
+        for (const g of fatia) {
+            area.appendChild(criarCard(g));
+        }
+
+        paginaAtual++;
+        const exibidos  = Math.min(paginaAtual * PAGE_SIZE, todosGrupos.length);
+        const restantes = todosGrupos.length - exibidos;
+
+        // Botão Ver mais
+        const btn = document.getElementById('btnVerMais');
+        if (restantes > 0) {
+            btn.textContent = `+ Ver mais ${restantes} produto${restantes !== 1 ? 's' : ''}`;
+            btn.style.display = 'block';
+        } else {
+            btn.style.display = 'none';
+        }
+
+        // Contador
+        const qtd = document.getElementById('qtdResultados');
+        qtd.textContent = `Exibindo ${exibidos} de ${todosGrupos.length} produto${todosGrupos.length !== 1 ? 's' : ''}`;
+    }
+
+    function verMais() {
+        exibirPagina();
+        // Rola suavemente para o botão (que desce junto com os novos cards)
+        document.getElementById('btnVerMais').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    // Agrupa linhas pelo código GIX, acumula locais
+    function agruparPorGix(linhas) {
+        const mapa = new Map();
+        for (const row of linhas) {
+            const gix = String(row.produto || '').trim();
+            if (!mapa.has(gix)) {
+                mapa.set(gix, { gix, descricao: row.descricao || '—', preco: null, barras: new Set(), locais: [] });
+            }
+            const grupo = mapa.get(gix);
+            const loc   = (row.local || row.zona || '').toString().trim().toUpperCase();
+            if (loc === 'LOJA NOVA' && row.valor > 0) grupo.preco = row.valor;
+            (row.codigos_barras || []).forEach(cb => { if (cb) grupo.barras.add(cb); });
+            grupo.locais.push({
+                nome:      (row.local || row.zona || '—').toString().trim(),
+                estoque:   Number(row.estoque || 0),
+                reservado: Number(row.estoque_reservado || 0)
+            });
+        }
+        return [...mapa.values()];
+    }
+
+    function criarCard(g) {
+        const card = document.createElement('div');
+        card.className = 'produto-grupo';
+
+        const precoHtml = g.preco !== null
+            ? `<span class="produto-preco">${formatarMoeda(g.preco)}</span>`
+            : '';
+
+        const barrasArr = [...g.barras];
+        const barrasHtml = barrasArr.length > 0
+            ? `<div class="produto-barras">${barrasArr.map(b => `<span>${b}</span>`).join('')}</div>`
+            : '';
+
+        const btnBarcodeHtml = barrasArr.length > 0
+            ? `<button class="btn-barcode" onclick='abrirBarcode(${JSON.stringify(barrasArr)}, ${JSON.stringify(g.descricao)})'>&#9641; Ver código de barras</button>`
+            : '';
+
+        card.innerHTML = `
+            <div class="produto-header">
+                <div class="produto-codigo">GIX ${g.gix}</div>
+                <div class="produto-desc">${g.descricao}</div>
+                ${precoHtml}
+                ${barrasHtml}
+                ${btnBarcodeHtml}
+            </div>
+            <div class="local-lista"></div>
+        `;
+
+        const lista = card.querySelector('.local-lista');
+        for (const loc of g.locais) {
+            const row    = document.createElement('div');
+            row.className = 'local-row';
+            const estNum = loc.estoque;
+            const resNum = loc.reservado;
+
+            const estHtml = estNum > 0
+                ? `<div class="stat-pill"><span class="stat-val">${estNum}</span><span class="stat-lbl">Estoque</span></div>`
+                : `<span class="sem-estoque">Sem estoque</span>`;
+
+            const resHtml = resNum > 0
+                ? `<div class="stat-pill reservado"><span class="stat-val">${resNum}</span><span class="stat-lbl">Reservado</span></div>`
+                : '';
+
+            row.innerHTML = `
+                <span class="local-nome">${loc.nome}</span>
+                <div class="local-stats">${estHtml}${resHtml}</div>
+            `;
+            lista.appendChild(row);
+        }
+
+        return card;
+    }
+
+    // ===== Modal de código de barras =====
+    function abrirBarcode(codigos, descricao) {
+        document.getElementById('barcodeDesc').textContent = descricao;
+
+        const sel = document.getElementById('barcodeSelect');
+        if (codigos.length > 1) {
+            sel.innerHTML = codigos.map(c => `<option value="${c}">${c}</option>`).join('');
+            sel.style.display = 'block';
+        } else {
+            sel.style.display = 'none';
+        }
+
+        renderBarcode(codigos[0]);
+        document.getElementById('barcodeOverlay').classList.add('open');
+    }
+
+    function detectarFormato(codigo) {
+        const s = codigo.replace(/\D/g, '');
+        if (s.length === 13) return 'EAN13';
+        if (s.length === 8)  return 'EAN8';
+        if (s.length === 12) return 'UPC';
+        return 'CODE128';
+    }
+
+    function renderBarcode(codigo) {
+        const svg = document.getElementById('barcodeSvg');
+        svg.innerHTML = '';
+
+        if (typeof JsBarcode === 'undefined') {
+            svg.outerHTML = `<p style="color:red;font-size:13px">Biblioteca de barcode não carregou. Verifique a conexão.</p>`;
+            return;
+        }
+
+        try {
+            JsBarcode(svg, codigo, {
+                format: detectarFormato(codigo),
+                displayValue: true,
+                fontSize: 14,
+                height: 80,
+                margin: 10,
+                width: 2
+            });
+        } catch(e) {
+            // fallback: tenta CODE128 que aceita qualquer string
+            try {
+                JsBarcode(svg, codigo, {
+                    format: 'CODE128',
+                    displayValue: true,
+                    fontSize: 14,
+                    height: 80,
+                    margin: 10,
+                    width: 2
+                });
+            } catch(e2) {
+                svg.innerHTML = `<text x="0" y="20" fill="red" font-size="13">Erro: ${e2.message}</text>`;
+            }
+        }
+    }
+
+    function fecharBarcode(ev) {
+        // Fecha ao clicar no overlay ou no botão Fechar
+        if (ev && ev.target !== document.getElementById('barcodeOverlay')) return;
+        document.getElementById('barcodeOverlay').classList.remove('open');
+    }
+
+    function mostrarCarregando() {
+        todosGrupos = [];
+        paginaAtual = 0;
+        document.getElementById('btnVerMais').style.display = 'none';
+        document.getElementById('resultados').innerHTML = `
+            <div class="estado"><div class="spinner"></div>Buscando produtos…</div>`;
+        document.getElementById('qtdResultados').textContent = '';
+    }
+
+    function mostrarVazio() {
+        document.getElementById('btnVerMais').style.display = 'none';
+        document.getElementById('resultados').innerHTML = `
+            <div class="estado"><span class="icone">📭</span>Nenhum produto encontrado.</div>`;
+        document.getElementById('qtdResultados').textContent = '';
+    }
+
+    function mostrarErro(msg) {
+        document.getElementById('btnVerMais').style.display = 'none';
+        document.getElementById('resultados').innerHTML = `
+            <div class="estado"><span class="icone">⚠️</span>Erro ao consultar:<br><strong>${msg}</strong></div>`;
+        document.getElementById('qtdResultados').textContent = '';
+    }
+    // ===== Registro do Service Worker (PWA) =====
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js').catch(() => {});
+        });
+    }
+</script>
+</body>
+</html>

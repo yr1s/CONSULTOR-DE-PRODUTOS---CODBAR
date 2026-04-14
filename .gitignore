@@ -1,0 +1,22 @@
+# Credenciais — NUNCA subir para o repositório
+.env
+.env.prod
+
+# Certificados SSL
+cert.pem
+key.pem
+
+# Ambiente virtual Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# IDEs
+.vscode/
+.idea/
+
+# Sistema
+Thumbs.db
+.DS_Store

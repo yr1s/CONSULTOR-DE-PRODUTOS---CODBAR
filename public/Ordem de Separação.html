@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>ORDEM DE SEPARAÇÃO</title>
+
+    <!--
+      ============================================================
+      ESTILOS (CSS)
+      Mantidos idênticos ao seu padrão visual:
+      - Fonte Arial, containers com borda/sombra
+      - Botões verde (adicionar), vermelho (remover) e azul (ação)
+      - Tamanhos e pesos de fonte equivalentes
+      ============================================================
+    -->
+    <style>
+        /* ===== Estrutura base ===== */
+        body { font-family: Arial, sans-serif; }
+
+        /* ===== Cartão/container padrão ===== */
+        .form-container {
+            max-width: 625px; width: 100%; margin: 0 auto; padding: 20px;
+            border: 1px solid #ccc; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,.1);
+        }
+
+        /* ===== Grupos/inputs ===== */
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display:block; margin-bottom:5px; font-size:16px; font-weight:bold; }
+        .form-group input, .form-group select {
+            width:100%; padding:10px; box-sizing:border-box; font-size:16px; font-weight:bold;
+        }
+        .form-group input[readonly]{ background:#f9f9f9; }
+
+        /* ===== Em linha ===== */
+        .form-inline-group { display:flex; align-items:center; }
+        .form-inline-group .form-group { flex:1; margin-right:10px; }
+        .form-inline-group .form-group:last-child { margin-right:0; }
+
+        /* ===== Checkboxes ===== */
+        .form-checkbox-inline { display:flex; justify-content:space-between; margin:10px 0; }
+        .form-checkbox-inline label { display:flex; align-items:center; font-size:16px; font-weight:bold; }
+        .form-checkbox-inline input { margin-right:10px; width:20px; height:20px; }
+
+        /* ===== Alerta ===== */
+        .alert { color:red; display:none; margin-bottom:10px; font-size:16px; font-weight:bold; }
+
+        /* ===== Botões + e - ===== */
+        .add-button, .remove-button {
+            display:inline-block; margin:10px 0; padding:10px 20px; color:#fff;
+            border:none; border-radius:5px; cursor:pointer; font-size:16px; font-weight:bold;
+            background:#28a745; /* verde */
+        }
+        .add-button:hover, .remove-button:hover { background:#218838; }
+        .remove-button { background:#dc3545; }  /* vermelho */
+        .remove-button:hover { background:#c82333; }
+
+        /* ===== Botões principais (Imprimir / Consulta / OK) ===== */
+        .print-button {
+            width:100%; padding:10px; background:#007bff; border:1px solid #fff; color:#fff;
+            font-size:16px; font-weight:bold; cursor:pointer; text-align:center; display:block; margin-top:10px;
+        }
+        .print-button:hover { background:#0056b3; }
+
+        /* ===== Cabeçalho (logo + textos) ===== */
+        .header { display:flex; align-items:center; margin-bottom:20px; }
+        .header .logo img { width:100px; height:100px; }
+        .header .text { text-align:left; margin-left:20px; }
+        .header .text h1 { font-size:24px; margin:0; }
+        .header .text h2 { font-size:16px; margin:0; font-weight:normal; }
+
+        /* ===== Linha GIX + QTD + Unidade ===== */
+        .inline-group { display:flex; align-items:center; }
+        .inline-group .form-group { margin-right:10px; }
+        .inline-group input[type="number"] { width:auto; flex:1; padding:10px; font-size:16px; font-weight:bold; }
+        .unidade-medida { display:flex; align-items:center; justify-content:space-between; }
+        .unidade-medida select { padding:10px; font-size:16px; font-weight:bold; margin-left:10px; flex:1; }
+
+        /* ===== Linha de botões + texto ===== */
+        .add-remove-group { display:flex; align-items:center; margin-top:10px; }
+        .add-remove-group .button-group { display:flex; align-items:center; }
+        .add-remove-group .button-group span { margin-left:10px; font-size:16px; font-weight:bold; }
+        .add-remove-group .remove-button-group { margin-left:20px; }
+
+        /* ===== OBS ===== */
+        .obs-container { margin-top:20px; }
+        .obs-container label { display:block; font-size:16px; font-weight:bold; margin-bottom:5px; }
+        .obs-container input { width:100%; padding:10px; box-sizing:border-box; font-size:16px; font-weight:bold; }
+
+        /* ===== Modal (caixa de pesquisa) ===== */
+        .modal-overlay{
+            position:fixed; inset:0; background:rgba(0,0,0,.35); display:none;
+            align-items:center; justify-content:center; z-index:1000;
+        }
+        .modal-box{
+            background:#fff; border:1px solid #ccc; border-radius:5px;
+            width:100%; max-width:625px; padding:20px; box-shadow:0 0 10px rgba(0,0,0,.1);
+        }
+        .btn-row{ display:flex; gap:10px; margin-top:10px; }
+
+        /* ===== Tabela de resultados ===== */
+        .result-table{ width:100%; border-collapse:collapse; margin-top:10px; }
+        .result-table th, .result-table td{
+            border:1px solid #ccc; padding:10px; font-size:16px; font-weight:bold; text-align:left;
+        }
+        .result-table th{ background:#f9f9f9; }
+
+        /* ===== Caixas em branco no comprovante impresso ===== */
+        .input-box { display:block; width:100%; height:30px; border:1px solid #000; margin-bottom:10px; }
+    
+/* ================== Ajustes finos de responsividade (mobile) ================== */
+@media (max-width: 640px){
+  *, *::before, *::after{ box-sizing: border-box; }
+  .form-container{ width: calc(100% - 24px); max-width: 100%; margin: 10px auto !important; padding: 12px; overflow-x: auto; }
+  .form-container img{ max-width: 100%; height: auto; }
+
+  .inline-group{ flex-wrap: wrap; gap: 10px; }
+  .inline-group .form-group{ width: 100%; margin-right: 0; }
+
+  .unidade-medida{ display: flex; align-items: center; gap: 10px; width: 100%; }
+  .unidade-medida input{ flex: 1 1 auto; min-width: 0; }
+  .unidade-medida select{ flex: 0 0 96px; }
+
+  .content .pesquisa-actions{ flex-wrap: wrap; gap: 10px; }
+  .content #resumoPesquisa{ width: 100% !important; }
+
+  .content .result-table{ display: block; width: 100%; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; border-spacing: 0; }
+  .content .result-table thead, .content .result-table tbody, .content .result-table tr, .content .result-table th, .content .result-table td{ white-space: nowrap; }
+  .content .result-table th:nth-child(2), .content .result-table td:nth-child(2){ white-space: normal; }
+}
+
+
+/* === Hotfix mobile: evitar corte da tabela na Consulta de Preço === */
+@media (max-width: 640px){
+  .content{ overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .content .result-table{ min-width: 760px; } /* garante rolagem lateral e evita corte de colunas */
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     TELA PRINCIPAL (seu formulário original + botão Consulta)
+     ============================================================ -->
+<div class="form-container" id="telaPrincipal">
+    <div class="header">
+        <div class="logo">
+            <a href="https://ibb.co/7Y59zkY">
+                <img src="https://i.ibb.co/7Y59zkY/Logo-perez-principal-com-imagens-1-removebg-preview.png" alt="Logo" border="0">
+            </a>
+        </div>
+        <div class="text">
+            <h1>Perez Materiais Elétricos e Ferragens</h1>
+            <h2>Ordem de Separação</h2>
+        </div>
+    </div>
+
+    <form id="registroForm">
+        <!-- Data/Hora (auto) -->
+        <div class="form-group">
+            <label for="dataHora">Data e Hora:</label>
+            <input type="text" id="dataHora" name="dataHora" readonly>
+        </div>
+
+        <!-- Vendedor -->
+        <div class="form-group">
+            <label for="vendedor">Vendedor/Atendente:</label>
+            <input type="text" id="vendedor" name="vendedor" style="text-transform: uppercase;" maxlength="10" required>
+        </div>
+
+        <!-- Alerta quando nenhuma tarefa é marcada -->
+        <div class="alert" id="alertaCheckbox">
+            Por favor, selecione uma das opções: Consultar Material, Separar Material ou Reposição.
+        </div>
+
+        <!-- Tarefas (exclusivas via JS) -->
+        <div class="form-checkbox-inline">
+            <label><input type="checkbox" id="consultarMaterial" name="tarefa" value="Consultar Material" onclick="selecionarCheckbox(this)">Consultar Material</label>
+            <label><input type="checkbox" id="separarMaterial"   name="tarefa" value="Separar Material"   onclick="selecionarCheckbox(this)">Separar Material</label>
+            <label><input type="checkbox" id="reposicaoMaterial"  name="tarefa" value="Reposição"          onclick="selecionarCheckbox(this)">Reposição</label>
+        </div>
+
+        <!-- Itens (dinâmico) -->
+        <div id="camposProdutos">
+            <div class="inline-group">
+                <div class="form-group">
+                    <label for="codGix">Código GIX:</label>
+                    <input type="number" id="codGix" name="codGix[]" required>
+                </div>
+                <div class="form-group">
+                    <label for="quantidade">Quantidade:</label>
+                    <div class="unidade-medida">
+                        <input type="number" id="quantidade" name="quantidade[]" required>
+                        <select id="unidade" name="unidade[]">
+                            <option value="UN">UN</option>
+                            <option value="PCT">PCT</option>
+                            <option value="CX">CX</option>
+                            <option value="RL">RL</option>
+                            <option value="MT">MT</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- + / - -->
+        <div class="add-remove-group">
+            <div class="button-group">
+                <button type="button" class="add-button" onclick="adicionarCampos()">+</button>
+                <span>Adicionar mais itens</span>
+            </div>
+            <div class="button-group remove-button-group">
+                <button type="button" class="remove-button" onclick="removerCampos()">-</button>
+                <span>Remover</span>
+            </div>
+        </div>
+
+        <!-- OBS -->
+        <div class="obs-container">
+            <label for="observacao">OBS:</label>
+            <input type="text" id="observacao" name="observacao" maxlength="100">
+        </div>
+    </form>
+
+    <!-- Botão NOVO: Consulta de Preço -->
+    <button type="button" class="print-button" onclick="abrirConsultaPreco()">Consulta de Preço</button>
+
+    <!-- Botão padrão: Imprimir -->
+    <button class="print-button" onclick="verificarCampos()">Imprimir</button>
+</div>
+
+<!-- ============================================================
+     TELA DE RESULTADOS (mesma guia) — tabela preenchida via fetch
+     ============================================================ -->
+<div id="telaResultados" style="display:none;">
+    <div class="form-container">
+        <div class="header">
+            <div class="logo">
+                <img src="https://i.ibb.co/7Y59zkY/Logo-perez-principal-com-imagens-1-removebg-preview.png" alt="Logo">
+            </div>
+            <div class="text">
+                <h1>Perez Materiais Elétricos e Ferragens</h1>
+                <h2>Consulta de Preço — Resultado</h2>
+            </div>
+        </div>
+
+        <!-- Mostra o termo pesquisado -->
+        <div class="pesquisa-actions">
+            <div class="form-group inline">
+                <label>Pesquisa:</label>
+                <input type="text" id="resumoPesquisa" readonly>
+            </div>
+            <div class="btn-row top">
+                <button type="button" class="print-button" onclick="abrirConsultaPreco()">Nova pesquisa</button>
+                <button type="button" class="remove-button" onclick="voltarParaFormulario()">Voltar</button>
+            </div>
+        </div>
+
+        <!-- Tabela de resultados -->
+        <table class="result-table">
+            <thead>
+                <tr>
+                    <th>Código GIX</th>
+                    <th>Descrição do Produto</th>
+                    <th>Valor</th>
+                    <th>Estoque (local)</th>
+                    <th>QTD</th>
+                    <th>Reservado (local)</th>
+                    <th>QTD</th>
+                </tr>
+            </thead>
+            <tbody id="tbodyResultados">
+                <tr><td colspan="7">Sem dados — faça uma pesquisa.</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ============================================================
+     MODAL (caixa) DE PESQUISA — CAMPO ÚNICO
+     ============================================================ -->
+<div id="consultaModal" class="modal-overlay" aria-hidden="true">
+    <div class="modal-box">
+        <div class="header">
+            <div class="logo">
+                <img src="https://i.ibb.co/7Y59zkY/Logo-perez-principal-com-imagens-1-removebg-preview.png" alt="Logo">
+            </div>
+            <div class="text">
+                <h1>Perez Materiais Elétricos e Ferragens</h1>
+                <h2>Consulta de Preço</h2>
+            </div>
+        </div>
+
+        <!-- Campo único (nome / GIX / código de barras) -->
+        <div class="form-group">
+            <label for="pesqTermo">Buscar:</label>
+            <input
+                type="text"
+                id="pesqTermo"
+                placeholder="Digite o nome, o código GIX ou bip o código de barras"
+                autocomplete="off"
+                inputmode="text"
+            >
+        </div>
+
+        <!-- OK / Cancelar -->
+        <div class="btn-row">
+            <button type="button" class="print-button" id="btnOkConsulta" onclick="confirmarConsultaPreco()">OK</button>
+            <button type="button" class="remove-button" onclick="cancelarConsultaPreco()">Cancelar</button>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+     SCRIPT (JS) — TODAS AS PARTES COMENTADAS
+     ============================================================ -->
+<script>
+    /* ---------- CONFIG DA API ----------
+       - baseUrl:
+         * se o HTML estiver aberto como arquivo (file://), usa http://localhost:3000
+         * se estiver hospedado (http/https), usa a mesma origem (window.location.origin)
+         * se quiser outro host/porta, basta alterar abaixo.
+       - apiKey: se você configurar API_KEY no Flask, coloque o mesmo valor aqui.
+    ------------------------------------ */
+    const API_CONFIG = {
+        baseUrl: (location.protocol === 'file:' ? 'http://localhost:3000' : location.origin),
+        apiKey: '' // opcional: se usar, será enviado no header "x-api-key"
+    };
+
+    // -------- UTIL: formata número em Real (pt-BR) --------
+    function formatarMoedaBr(valor){
+        const n = Number(valor || 0);
+        return n.toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
+    }
+
+    // -------- Atualização automática da data/hora --------
+    document.addEventListener('DOMContentLoaded', function() {
+        function atualizarDataHora() {
+            const dataHoraField = document.getElementById('dataHora');
+            const now = new Date();
+            const formattedDate = now.toLocaleString('pt-BR', {
+                day:'2-digit', month:'2-digit', year:'numeric',
+                hour:'2-digit', minute:'2-digit', second:'2-digit'
+            });
+            dataHoraField.value = formattedDate;
+        }
+        setInterval(atualizarDataHora, 1000);
+        atualizarDataHora();
+    });
+
+    // -------- Exclusividade das tarefas (checkbox -> rádio lógico) --------
+    function selecionarCheckbox(checkbox) {
+        const checkboxes = document.getElementsByName('tarefa');
+        checkboxes.forEach(cb => { if (cb !== checkbox) cb.checked = false; });
+    }
+
+    // -------- Itens dinâmicos: adiciona linha --------
+    function adicionarCampos() {
+        const camposProdutos = document.getElementById('camposProdutos');
+        const div = document.createElement('div');
+        div.className = 'inline-group';
+        div.innerHTML = `
+            <div class="form-group">
+                <label>Código GIX:</label>
+                <input type="number" name="codGix[]" required>
+            </div>
+            <div class="form-group">
+                <label>Quantidade:</label>
+                <div class="unidade-medida">
+                    <input type="number" name="quantidade[]" required>
+                    <select name="unidade[]">
+                        <option value="UN">UN</option>
+                        <option value="PCT">PCT</option>
+                        <option value="CX">CX</option>
+                        <option value="RL">RL</option>
+                        <option value="MT">MT</option>
+                    </select>
+                </div>
+            </div>`;
+        camposProdutos.appendChild(div);
+    }
+
+    // -------- Itens dinâmicos: remove a última linha (nunca deixa 0) --------
+    function removerCampos() {
+        const camposProdutos = document.getElementById('camposProdutos');
+        if (camposProdutos.children.length > 1) {
+            camposProdutos.removeChild(camposProdutos.lastElementChild);
+        }
+    }
+
+    // -------- Utilitário: quebra OBS em linhas curtas (para impressão 80mm) --------
+    function quebrarTexto(texto, tamanhoMaximo) {
+        const linhas = [];
+        for (let i = 0; i < texto.length; i += tamanhoMaximo) {
+            linhas.push(texto.substring(i, i + tamanhoMaximo));
+        }
+        return linhas.join('<br>');
+    }
+
+    // -------- Validação do formulário + geração de impressão --------
+    function verificarCampos() {
+        const vendedor = document.getElementById('vendedor').value;
+        const codGixFields = document.getElementsByName('codGix[]');
+        const quantidadeFields = document.getElementsByName('quantidade[]');
+        const consultarMaterial = document.getElementById('consultarMaterial').checked;
+        const separarMaterial   = document.getElementById('separarMaterial').checked;
+        const reposicaoMaterial = document.getElementById('reposicaoMaterial').checked;
+        const alertaCheckbox = document.getElementById('alertaCheckbox');
+
+        let ok = true;
+
+        if (!consultarMaterial && !separarMaterial && !reposicaoMaterial) {
+            alertaCheckbox.style.display = 'block';
+            ok = false;
+        } else {
+            alertaCheckbox.style.display = 'none';
+        }
+        if (!vendedor) {
+            alert('Por favor, preencha o campo Vendedor/Atendente.');
+            ok = false;
+        }
+        codGixFields.forEach((f,i)=>{
+            if (!f.value || !quantidadeFields[i].value) {
+                alert('Por favor, preencha todos os campos de Código GIX e Quantidade.');
+                ok = false;
+            }
+        });
+        if (ok) gerarDocumento();
+    }
+
+    // -------- Impressão: monta HTML 80mm, abre janela, imprime e baixa .html --------
+    function gerarDocumento() {
+        const vendedor = document.getElementById('vendedor').value.toUpperCase();
+        const codGixFields = document.getElementsByName('codGix[]');
+        const quantidadeFields = document.getElementsByName('quantidade[]');
+        const unidades = document.getElementsByName('unidade[]');
+        const consultarMaterial = document.getElementById('consultarMaterial').checked;
+        const separarMaterial   = document.getElementById('separarMaterial').checked;
+        const reposicaoMaterial = document.getElementById('reposicaoMaterial').checked;
+        const dataHora = document.getElementById('dataHora').value;
+        const observacao = document.getElementById('observacao').value;
+
+        let tarefa = '';
+        let titulo = 'Ordem de Separação';
+        let requisitadoPorLabel = 'Vendedor/Atendente';
+
+        if (consultarMaterial) { tarefa = 'Consultar Material'; }
+        else if (separarMaterial){ tarefa = 'Separar Material'; }
+        else if (reposicaoMaterial){
+            tarefa = 'Reposição';
+            titulo = 'Ordem de Reposição';
+            requisitadoPorLabel = 'Requisitado por:';
+        }
+
+        let conteudo = `
+            <html><head><title>${titulo}</title>
+            <style>
+                body{ width:80mm; font-family:Arial,sans-serif; margin:0; font-weight:bold; }
+                h1,p,h2{ margin:0; padding:0; }
+                h1{ margin-bottom:10px; font-size:16px; text-transform:uppercase; text-align:center; }
+                p{ margin-bottom:5px; text-align:left; }
+                h2{ margin-top:10px; text-align:left; }
+                .header{ display:flex; align-items:center; margin-bottom:10px; }
+                .header img{ width:50px; height:50px; margin-right:10px; }
+                .content{ border:1px solid #000; padding:10px; }
+                .input-box{ display:block; width:100%; height:30px; border:1px solid #000; margin-bottom:10px; }
+            </style></head><body>
+            <div class="content">
+                <div class="header">
+                    <img src="https://i.ibb.co/7Y59zkY/Logo-perez-principal-com-imagens-1-removebg-preview.png" alt="Logo">
+                    <h1>${titulo}</h1>
+                </div>
+                <p>Data e Hora: ${dataHora}</p>
+                <p>${requisitadoPorLabel} ${vendedor}</p>
+                <p>Tarefa: ${tarefa}</p>
+                <h2>Produtos</h2>`;
+
+        for (let i=0; i<codGixFields.length; i++) {
+            conteudo += `<p>Cód. GIX: ${codGixFields[i].value} QTD: ${quantidadeFields[i].value} ${unidades[i].value}</p>`;
+        }
+        if (observacao) {
+            conteudo += `<p>OBS: ${quebrarTexto(observacao, 32)}</p>`;
+        }
+        conteudo += `
+                <p>Separador(a):</p><div class="input-box"></div>
+                <p>Horário Elevador/Resposta:</p><div class="input-box"></div>
+                <p style="font-size:12px;">OBS: prazo de retorno 15 minutos.</p>
+            </div></body></html>`;
+
+        const win = window.open('', '_blank');
+        win.document.write(conteudo); win.document.close(); win.print();
+
+        const blob = new Blob([conteudo], { type:'text/html' });
+        const nome = new Date().toLocaleString('pt-BR', {
+            year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit'
+        }).replace(/[\s/:]/g,'-');
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `${titulo.replace(/\s/g,'_')}_${nome}.html`;
+        a.click();
+    }
+
+    // -------- UI: abre modal de pesquisa --------
+    function abrirConsultaPreco(){
+        document.getElementById('pesqTermo').value = '';
+        const modal = document.getElementById('consultaModal');
+        modal.style.display = 'flex';
+        setTimeout(()=>document.getElementById('pesqTermo').focus(),0);
+        modal.onkeydown = (ev)=>{
+            if (ev.key === 'Enter'){ ev.preventDefault(); confirmarConsultaPreco(); }
+            if (ev.key === 'Escape'){ ev.preventDefault(); cancelarConsultaPreco(); }
+        };
+    }
+
+    // -------- UI: fecha modal --------
+    function cancelarConsultaPreco(){
+        const modal = document.getElementById('consultaModal');
+        modal.style.display = 'none';
+        modal.onkeydown = null;
+    }
+
+    // -------- INTEGRAÇÃO: consulta ao Flask e preenche tabela --------
+    async function confirmarConsultaPreco(){
+        const termo = document.getElementById('pesqTermo').value.trim();
+        const digitsOnly = termo.replace(/\D/g, '');
+        const isAllDigits = /^\d+$/.test(termo);
+        const isLikelyBarcode = isAllDigits && digitsOnly.length >= 12; // EAN-12/13/14 etc.
+
+        // Mostra o termo na tela de resultados
+        document.getElementById('resumoPesquisa').value = termo || '—';
+
+        // Alterna para a tela de resultados já com "Carregando..."
+        cancelarConsultaPreco();
+        document.getElementById('telaPrincipal').style.display = 'none';
+        document.getElementById('telaResultados').style.display = 'block';
+
+        const tbody = document.getElementById('tbodyResultados');
+        tbody.innerHTML = `<tr><td colspan="5">Carregando…</td></tr>`;
+
+        // Monta URL do endpoint /api/busca?q=
+        const base = API_CONFIG.baseUrl.replace(/\/$/,'');
+        const url  = `${base}/api/busca?q=${encodeURIComponent(termo)}`;
+
+        // Cabeçalhos (x-api-key opcional)
+        const headers = {};
+        if (API_CONFIG.apiKey) headers['x-api-key'] = API_CONFIG.apiKey;
+
+        try{
+            const resp = await fetch(url, { headers });
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            const data = await resp.json();
+
+            if (!Array.isArray(data)){
+                tbody.innerHTML = `<tr><td colspan="7">Nenhum resultado encontrado.</td></tr>`;
+                return;
+            }
+
+            // 1) Quando termo numérico curto, filtra por GIX exato (não impacta código de barras)
+            let baseData = data;
+            if (isAllDigits && !isLikelyBarcode){
+                baseData = baseData.filter(r => String(r.produto || '').toString().trim() === digitsOnly);
+            }
+
+            // 2) Remove linhas sem local/zona e o local 'LOJA'
+            const dataFiltrada = baseData
+              .filter(r => {
+                 const raw = (r.local ?? r.zona ?? '').toString().trim();
+                 const up = raw.toUpperCase();
+                 return raw !== '' && raw !== '-' && raw !== '—' && up !== 'NULL' && up !== 'NULO' && up !== 'SEM LOCAL';
+              })
+              .filter(r => {
+                 const lz = (r.local || r.zona || '').toString().trim().toUpperCase();
+                 return lz !== 'LOJA';
+              });
+
+            if (dataFiltrada.length === 0){
+                tbody.innerHTML = `<tr><td colspan="7">Nenhum resultado encontrado.</td></tr>`;
+                return;
+            }
+
+            // Renderiza cada linha retornada pelo backend (já filtrada)
+            // produto(GIX) | descricao | valor | estoque(local/zonas) | reservado
+            const linhas = dataFiltrada.map(row => {
+                const gix   = row.produto || '—';
+                const desc  = row.descricao || '—';
+                const isLojaNova = ((row.local || row.zona || '').toString().trim().toUpperCase() === 'LOJA NOVA');
+                const valorCell = isLojaNova ? formatarMoedaBr(row.valor) : '';
+                const localOuZona = row.local || row.zona || '—';
+
+                const estNum = Number(row.estoque||0);
+                const estQtdCell = (estNum > 0) ? estNum : '';
+                const resNum = Number(row.estoque_reservado||0);
+                const resQtdCell = (resNum > 0) ? resNum : '';
+
+                return `<tr>
+                    <td>${gix}</td>
+                    <td>${desc}</td>
+                    <td>${valorCell}</td>
+                    <td>${localOuZona}</td>
+                    <td>${estQtdCell}</td>
+                    <td>${localOuZona}</td>
+                    <td>${resQtdCell}</td>
+                </tr>`;
+            });
+
+            tbody.innerHTML = linhas.join('');
+        }catch(err){
+            // Em caso de erro (ex.: CORS, rede, backend off)
+            tbody.innerHTML = `<tr><td colspan="7">Erro ao consultar: ${err.message}</td></tr>`;
+        }
+    }
+
+    // -------- Voltar dos resultados para o formulário --------
+    function voltarParaFormulario(){
+        document.getElementById('telaResultados').style.display = 'none';
+        document.getElementById('telaPrincipal').style.display = 'block';
+    }
+</script>
+</body>
+</html>
