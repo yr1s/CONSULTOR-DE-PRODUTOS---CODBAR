@@ -295,42 +295,65 @@
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(0,0,0,.55);
+            background: #fff;
             z-index: 200;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            flex-direction: column;
+            padding: 16px;
         }
         #barcodeOverlay.open { display: flex; }
 
+        /* Tela cheia via API — sem padding, fundo branco */
+        #barcodeOverlay:fullscreen,
+        #barcodeOverlay:-webkit-full-screen {
+            background: #fff;
+            padding: 0;
+        }
+
         #barcodeBox {
-            background: var(--branco);
-            border-radius: 12px;
-            padding: 24px 20px 20px;
             width: 100%;
-            max-width: 400px;
+            max-width: 500px;
             text-align: center;
-            box-shadow: 0 4px 24px rgba(0,0,0,.25);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Em paisagem (fullscreen), barcode ocupa toda a largura */
+        #barcodeOverlay:fullscreen #barcodeBox,
+        #barcodeOverlay:-webkit-full-screen #barcodeBox {
+            max-width: 100%;
+            height: 100%;
+            justify-content: center;
+            padding: 12px 20px;
         }
 
         #barcodeBox h3 {
-            font-size: 13px;
+            font-size: 12px;
             color: var(--sub);
-            margin-bottom: 4px;
             text-transform: uppercase;
             letter-spacing: .5px;
+            margin: 0;
         }
 
         #barcodeBox p {
-            font-size: 15px;
+            font-size: 14px;
             font-weight: bold;
             color: var(--texto);
-            margin-bottom: 16px;
+            margin: 0;
         }
 
-        #barcodeBox svg {
-            max-width: 100%;
+        #barcodeSvg {
+            width: 100%;
             height: auto;
+        }
+
+        #barcodeOverlay:fullscreen #barcodeSvg,
+        #barcodeOverlay:-webkit-full-screen #barcodeSvg {
+            width: 100%;
+            max-height: 70vh;
         }
 
         /* seletor quando produto tem vários códigos */
@@ -341,14 +364,13 @@
             font-weight: bold;
             border: 1px solid var(--borda);
             border-radius: 6px;
-            margin-bottom: 16px;
             display: none;
         }
 
         #btnFecharBarcode {
-            margin-top: 18px;
             width: 100%;
-            padding: 12px;
+            max-width: 500px;
+            padding: 13px;
             background: var(--cinza);
             border: 1px solid var(--borda);
             border-radius: 8px;
@@ -356,6 +378,7 @@
             font-weight: bold;
             color: var(--texto);
             cursor: pointer;
+            margin-top: 4px;
         }
         #btnFecharBarcode:active { background: var(--borda); }
 
@@ -653,7 +676,16 @@
         }
 
         renderBarcode(codigos[0]);
-        document.getElementById('barcodeOverlay').classList.add('open');
+        const overlay = document.getElementById('barcodeOverlay');
+        overlay.classList.add('open');
+
+        // Tela cheia + travar em paisagem
+        try {
+            await overlay.requestFullscreen({ navigationUI: 'hide' });
+            await screen.orientation.lock('landscape');
+        } catch(e) {
+            // Fallback silencioso — exibe modal normal sem fullscreen
+        }
     }
 
     function detectarFormato(codigo) {
@@ -700,10 +732,23 @@
     }
 
     function fecharBarcode(ev) {
-        // Fecha ao clicar no overlay ou no botão Fechar
         if (ev && ev.target !== document.getElementById('barcodeOverlay')) return;
         document.getElementById('barcodeOverlay').classList.remove('open');
+
+        // Sai do fullscreen e libera orientação
+        try { screen.orientation.unlock(); } catch(e) {}
+        if (document.fullscreenElement) {
+            document.exitFullscreen().catch(() => {});
+        }
     }
+
+    // Fecha também se o usuário sair do fullscreen pelo botão do sistema
+    document.addEventListener('fullscreenchange', () => {
+        if (!document.fullscreenElement) {
+            document.getElementById('barcodeOverlay').classList.remove('open');
+            try { screen.orientation.unlock(); } catch(e) {}
+        }
+    });
 
     function mostrarCarregando() {
         todosGrupos = [];
